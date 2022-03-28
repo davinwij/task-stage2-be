@@ -11,6 +11,15 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      book.belongsToMany(models.users, {
+        as: "userList",
+        through:{
+          model: "userbooklist",
+          as: "bridge"
+        },
+        foreignKey: "idBook"
+      })
+
     }
   }
   book.init({
@@ -20,7 +29,8 @@ module.exports = (sequelize, DataTypes) => {
     author: DataTypes.STRING,
     isbn: DataTypes.INTEGER,
     about: DataTypes.STRING,
-    bookFile: DataTypes.STRING
+    bookFile: DataTypes.STRING,
+    imageFile: DataTypes.STRING
   }, {
     sequelize,
     modelName: 'book',

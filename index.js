@@ -1,6 +1,10 @@
+// require('dotenv').config
+const {config} = require('dotenv')
+config()
 const express = require('express')
 const router = require('./src/routes')
-require('dotenv').config
+
+const cors = require('cors')
 
 const app = express()
 
@@ -10,8 +14,10 @@ app.listen(port, () => console.log(`Listening on port ${port} `))
 
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
+app.use(cors())
 
-app.use('/products', express.static("uploads"))
+
+app.use('/uploads', express.static('uploads'))
 
 app.use('/api/v1', router)
 

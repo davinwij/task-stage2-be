@@ -1,6 +1,6 @@
 const { NOW } = require('sequelize')
 const { MEDIUMINT } = require('sequelize')
-const { book } = require('../../models')
+const { book, userBookList } = require('../../models')
 
 exports.addBook = async (req, res) => {
     try {
@@ -9,8 +9,10 @@ exports.addBook = async (req, res) => {
         
         await book.create({
             ...addData,
-            bookFile: req.file.filename
+            bookFile: req.files.bookFile[0].filename,                        
+            imageFile: req.files.imageFile[0].filename                        
         })            
+
 
         const data = await book.findOne({
             where:{
@@ -31,7 +33,7 @@ exports.addBook = async (req, res) => {
     } catch (error) {
         res.status(400).send({
             status: "failed",
-            message: "Server error"
+            message: `Server error, ${error}`
         })
     }
 }
@@ -47,14 +49,12 @@ exports.getBooks = async (req,res) => {
             })
         }
 
-        data = JSON.parse(JSON.stringify(data))
+        data = JSON.parse(JSON.stringify(data))            
 
         res.status(200).send({
             status: "success",
             data:{
-                books: {
-                    ...data,                    
-                }
+                books: data
             }
         })
 
@@ -180,6 +180,35 @@ exports.deleteBook = async (req, res) => {
         })        
     }
 }
+
+exports.addToList = async (req, res) => {
+    try {
+        const id = req.user.id
+        const idBook = req.params    
+
+
+        await userBookList.create({
+            idUser: id,
+            idBook: idBook.id
+        })            
+
+        res.status(200).send({
+            status: "success",
+            message: {
+                userId: id,
+                bookId: idBook
+            }
+        })
+
+
+    } catch (error) {
+        res.status(400).send({
+            status: "failed",
+            message: `Server error, ${error}`
+        })   
+    }
+}
+
 
 const month = [
     "January",

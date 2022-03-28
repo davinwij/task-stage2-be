@@ -1,6 +1,6 @@
 const multer = require('multer')
 
-exports.uploadFile = (imageFile) => {
+exports.uploadFile = (imageFile, bookFile) => {
     const storage = multer.diskStorage({
         destination: function(req, res, cb) {
             cb(null, "uploads")
@@ -12,11 +12,19 @@ exports.uploadFile = (imageFile) => {
 
     const fileFilter = function(req, file, cb){
         if(file.fieldname === imageFile){
-            if(!file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|epub)$/)){
+            if(!file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG)$/)){
                 req.fileValidationError = {
                     message: "Only image file are allowed"
                 }
                 return cb(new Error("Only image file are allowed"), false)
+            }
+        }
+        if(file.fieldname === bookFile){
+            if(!file.originalname.match(/\.(epub|EPUB)$/)){
+                req.fileValidationError = {
+                    message: "File type not allowed"
+                }
+                return cb(new Error("Only image file are allowed"), false)  
             }
         }
         cb(null, true)
@@ -31,7 +39,10 @@ exports.uploadFile = (imageFile) => {
         limits:{
             fileSize: maxSize
         }
-    }).single(imageFile)
+    }).fields([
+        {name: imageFile},
+        {name: bookFile}
+    ])
 
     return(req, res, next) => {
         upload(req, res, function(err){
@@ -39,9 +50,15 @@ exports.uploadFile = (imageFile) => {
                 return res.status(400).send(req.fileValidationError)
             }
             
-            if(!req.file && !err ){
+            if(!req.files.bookFile && !err ){
                 return res.status(400).send({
-                    message: "Please select file to upload"
+                    message: "Please select file to upload"                    
+                })
+            }
+
+            if(!req.files.imageFile && !err ){
+                return res.status(400).send({
+                    message: "Please select file to upload"                    
                 })
             }
             

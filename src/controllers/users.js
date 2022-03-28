@@ -1,4 +1,4 @@
-const { users, transaction } = require('../../models')
+const { users, transaction, userBookList, book} = require('../../models')
 
 const Joi = require('joi')
 const bycrypt = require('bcrypt')
@@ -9,7 +9,15 @@ exports.addUsers = async (req, res) => {
     try {
         const data = req.body
 
-        await users.create(data)
+        const salt = await bycrypt.genSalt(10)
+        const hashPassword = await bycrypt.hash(data.password, salt)
+
+        await users.create({
+            email: data.email,
+            password: hashPassword,
+            fullname: data.fullname,
+            role: data.role
+        })
 
         res.send({
             status: "success",
@@ -19,8 +27,9 @@ exports.addUsers = async (req, res) => {
     } catch (error) {
         res.send({
             status: "failed",
-            message: "Server error"
-        })
+            message: `Server error, ${error}`    
+        })        
+
     }
 }
 
@@ -35,7 +44,7 @@ exports.userRegister = async (req, res) => {
         })        
 
         if(data){
-            res.send({
+            res.status(400).send({
                 status: "register failed",
                 message: "email already exist"
             })    
@@ -81,7 +90,8 @@ exports.userRegister = async (req, res) => {
             }                 
 
             //secret key harusnya di .env
-            const SECRET_KEY = "secret"            
+            const SECRET_KEY = process.env.TOKEN_KEY           
+            console.log(SECRET_KEY)
             const token = jwt.sign(dataToken, SECRET_KEY)
                 
 
@@ -127,7 +137,8 @@ exports.userLogin = async (req, res) => {
             
             const dataToken ={
                 id: data.id,
-                name: data.fullname
+                name: data.fullname,
+                role: data.role
             }                                            
 
             //secret key harusnya di .env
@@ -144,8 +155,11 @@ exports.userLogin = async (req, res) => {
                     status: "success",
                     data: {
                         user:{
-                            email: data.email,                        
-                            token: token
+                            id: data.id,
+                            email: data.email,
+                            role: data.role,                        
+                            token: token,
+                            fullname: data.fullname
                         }              
                     }                    
                 })                
@@ -154,7 +168,7 @@ exports.userLogin = async (req, res) => {
 
 
     } catch (error) {
-        res.send({
+        res.status(400).send({
             status: "failed",
             message: error
         })            
@@ -162,20 +176,22 @@ exports.userLogin = async (req, res) => {
 }
 
 exports.getUsers = async (req, res) => {
-    try {
+    try {        
+
         const data = await users.findAll({
             attributes:{
                 exclude: ['createdAt', 'updatedAt', 'password', 'role']
             }
         })
 
+        
         if(data){
             return res.status(200).send({
                 status: "success",
                 data: {
                     users: data                                
                 }                    
-            })
+            })                    
         }else{
             return res.status(400).send({
                 status: "failed",
@@ -222,3 +238,94 @@ exports.deleteUser = async (req, res) => {
         })        
     }
 }
+
+exports.checkAuth = async (req, res) => {
+    try {
+      const id = req.user.id;
+  
+      const dataUser = await users.findOne({
+        where: {
+          id,
+        },
+        attributes: {
+          exclude: ["createdAt", "updatedAt", "password"],
+        },
+      });
+  
+      if (!dataUser) {
+        return res.status(404).send({
+          status: "failed",
+        });
+      }
+  
+      res.status(200).send({
+        status: "success...",
+        data: {
+          user: {
+            id: dataUser.id,
+            fullname: dataUser.fullname,
+            email: dataUser.email,
+            role: dataUser.role,
+          },
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      res.status({
+        status: "failed",
+        message: "Server Error",
+      });
+    }
+};
+
+exports.getUserBook = async (req, res) => {
+    try {
+        const { id } = req.user
+
+        const data = await book.findAll({            
+            include: [
+                {
+                    model: users,
+                    as: "userList",
+                    through: {
+                        model: userBookList,
+                        as: "bridge",
+                        attributes:{
+                            exclude: ["createdAt", "updatedAt"]
+                        }
+                    },
+                    where:{
+                        id
+                    },
+                    attributes:{
+                        exclude: ["createdAt", "updatedAt", "email", "password", "role", ]
+                    }
+                }
+            ],
+            attributes:{
+                exclude: ["createdAt", "updatedAt"]
+            }
+        })
+
+        if(!data){
+            res.status(400).send({
+                status: "failed",
+                message: `No data`
+            })   
+        }else{
+            res.status(200).send({
+                status: "success",
+                data: data
+            })
+        }
+        
+
+    } catch (error) {
+        res.status(400).send({
+            status: "failed",
+            message: `Server error, ${error}`
+        })   
+    }
+}
+
+

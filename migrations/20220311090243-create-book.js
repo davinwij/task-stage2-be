@@ -29,6 +29,9 @@ module.exports = {
       bookFile: {
         type: Sequelize.STRING
       },
+      imageFile: {
+        type: Sequelize.STRING
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE
@@ -37,8 +40,9 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE
       }
-    });
+    })    
   },
+
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('books');
   }

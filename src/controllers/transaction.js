@@ -176,7 +176,7 @@ exports.getTransactions = async (req, res) => {
 
 exports.getTransaction = async (req, res) => {
     try {
-        const { id } = req.params  
+        const id  = req.user.id
         
         const data = await transaction.findOne({
             include: 
@@ -188,7 +188,7 @@ exports.getTransaction = async (req, res) => {
                 }
             },
             where:{
-                id: id
+                idUser: id
             },
             attributes:{
                 exclude: ['createdAt', 'updatedAt']
@@ -218,5 +218,36 @@ exports.getTransaction = async (req, res) => {
             message: error
         })   
         console.log(error)
+    }
+}
+
+exports.updateUserRemaining = async(req, res) => {
+    try {
+        const getData = await transaction.findAll()
+
+        for (let i = 0; i < getData.length; i++) {
+            if(getData[i].remainingActive > 0){
+                await transaction.update({remainingActive: getData[i].remainingActive - 1},{
+                    where:{
+                        id: getData[i].id
+                    }
+                })
+            }else{
+                const rejectedData = {
+                    remainingActive: 0,            
+                    userStatus: "Not Active",
+                    paymentStatus: "Cancel", 
+                }     
+
+                await transaction.update(rejectedData, {
+                    where:{
+                        id: getData[i].id
+                    }
+                })
+            }
+        }
+
+    } catch (error) {
+
     }
 }
